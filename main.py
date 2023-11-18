@@ -35,7 +35,7 @@ def main():
     """
     Fonction principale exécutant les étapes principales du script.
     """
-    file_path = 'instances/Spd_Inst_Rid_Final2/test.txt'  # Remplacez par le chemin de votre fichier
+    file_path = 'instances/Spd_Inst_Rid_Final2/Spd_RF2_20_27_211.txt'  # Remplacez par le chemin de votre fichier
     graph = read_graph_from_file(file_path)
     directed_g = graph.to_directed()
 
@@ -50,7 +50,16 @@ def main():
 
     time_limit = 60
 
-    x, y = solvepl.pl_expo(graph, time_limit, PATH_TO_CPLEX)
+    # x, y = solvepl.pl_expo(graph, time_limit, PATH_TO_CPLEX)
+    #
+    # # Afficher les valeurs de y
+    # for i, var in y.items():
+    #     print(f"{var.name} = {var.value()}")
+    #
+    # for i, var in x.items():
+    #     print(f"{var.name} = {var.value()}")
+
+    x, y = solvepl.pl_flot(directed_g, time_limit, PATH_TO_CPLEX)
 
     # Afficher les valeurs de y
     for i, var in y.items():
@@ -59,7 +68,16 @@ def main():
     for i, var in x.items():
         print(f"{var.name} = {var.value()}")
 
-    x, y = solvepl.pl_flot(directed_g, time_limit, PATH_TO_CPLEX)
+    x, y = solvepl.pl_flot_multi(directed_g, time_limit, PATH_TO_CPLEX)
+
+    # Afficher les valeurs de y
+    for i, var in y.items():
+        print(f"{var.name} = {var.value()}")
+
+    for i, var in x.items():
+        print(f"{var.name} = {var.value()}")
+
+    x, y = solvepl.pl_martin(directed_g, time_limit, PATH_TO_CPLEX)
 
     # Afficher les valeurs de y
     for i, var in y.items():
