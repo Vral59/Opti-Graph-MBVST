@@ -31,11 +31,29 @@ def read_graph_from_file(file_path):
     return g
 
 
+def draw_tree(nb_node, x):
+    # Création d'un graphe dirigé
+    G = nx.Graph()
+
+    # Ajout des nœuds
+    G.add_nodes_from(range(1, nb_node+1))
+
+    # Ajout des arêtes si la valeur dans le dictionnaire est proche de 1
+    for edge, var in x.items():
+        if 0.8 <= var.value() <= 1.2:  # Gestion de la précision numérique
+            G.add_edge(edge[0], edge[1])
+
+    # Affichage du graphe avec des flèches dans un seul sens
+    pos = nx.spring_layout(G)
+    nx.draw(G, pos, with_labels=True, font_weight='bold', node_size=700, node_color='skyblue', font_size=8,
+            font_color='black', arrowsize=10)
+    plt.show()
+
 def main():
     """
     Fonction principale exécutant les étapes principales du script.
     """
-    file_path = 'instances/Spd_Inst_Rid_Final2/Spd_RF2_20_27_211.txt'  # Remplacez par le chemin de votre fichier
+    file_path = 'instances/Spd_Inst_Rid_Final2/Spd_RF2_20_27_219.txt'  # Remplacez par le chemin de votre fichier
     graph = read_graph_from_file(file_path)
     directed_g = graph.to_directed()
 
@@ -45,22 +63,13 @@ def main():
     nx.draw(graph, with_labels=True, font_weight='bold')
     plt.show()
 
-    nx.draw(directed_g, with_labels=True, font_weight='bold')
-    plt.show()
+    #nx.draw(directed_g, with_labels=True, font_weight='bold')
+    #plt.show()
 
     time_limit = 60
 
-    # x, y = solvepl.pl_expo(graph, time_limit, PATH_TO_CPLEX)
-    #
-    # # Afficher les valeurs de y
-    # for i, var in y.items():
-    #     print(f"{var.name} = {var.value()}")
-    #
-    # for i, var in x.items():
-    #     print(f"{var.name} = {var.value()}")
-
     x, y = solvepl.pl_flot(directed_g, time_limit, PATH_TO_CPLEX)
-
+    draw_tree(graph.number_of_nodes(), x)
     # Afficher les valeurs de y
     for i, var in y.items():
         print(f"{var.name} = {var.value()}")
@@ -69,7 +78,7 @@ def main():
         print(f"{var.name} = {var.value()}")
 
     x, y = solvepl.pl_flot_multi(directed_g, time_limit, PATH_TO_CPLEX)
-
+    draw_tree(graph.number_of_nodes(), x)
     # Afficher les valeurs de y
     for i, var in y.items():
         print(f"{var.name} = {var.value()}")
@@ -77,10 +86,10 @@ def main():
     for i, var in x.items():
         print(f"{var.name} = {var.value()}")
 
-    x, y = solvepl.pl_martin(directed_g, time_limit, PATH_TO_CPLEX)
+    x, z = solvepl.pl_martin(graph, time_limit, PATH_TO_CPLEX)
+    draw_tree(graph.number_of_nodes(), x)
 
-    # Afficher les valeurs de y
-    for i, var in y.items():
+    for i, var in z.items():
         print(f"{var.name} = {var.value()}")
 
     for i, var in x.items():

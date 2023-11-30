@@ -119,7 +119,11 @@ def pl_flot(graph, time_limit, path_to_cplex):
     # Contrainte (9)
     # TODO : Vérifier quantificateurs : v != s ?
     for v in range(1, nb_nodes + 1):
-        model += pl.lpSum(x[e] for e in graph.in_edges(v)) == 1
+        if v != s:
+            model += pl.lpSum(x[e] for e in graph.in_edges(v)) == 1
+
+    # Contrainte bonus
+    model += pl.lpSum(x[e] for e in graph.edges) == nb_nodes - 1
 
     # Contrainte (10)
     model += pl.lpSum(f[e] for e in graph.out_edges(s)) - pl.lpSum(f[e] for e in graph.in_edges(s)) \
@@ -133,7 +137,7 @@ def pl_flot(graph, time_limit, path_to_cplex):
 
     # Contrainte (12)
     for e in graph.edges:
-        model += x[e] <= f[e] <= nb_nodes * x[e]
+        model += x[e] <= f[e] <= (nb_nodes - 1) * x[e]
 
     # Contrainte (13)
     for v in range(1, nb_nodes + 1):
@@ -181,6 +185,9 @@ def pl_flot_multi(graph, time_limit, path_to_cplex):
         if v != s:
             model += pl.lpSum(x[e] for e in graph.in_edges(v)) == 1
 
+    # Contrainte bonus
+    model += pl.lpSum(x[e] for e in graph.edges) == nb_nodes - 1
+
     # Contrainte (19)
     # TODO : vérifier les quantificateurs : ensemble de k et de v ?
     for v in range(1, nb_nodes+1):
@@ -194,7 +201,7 @@ def pl_flot_multi(graph, time_limit, path_to_cplex):
     for k in range(1, nb_nodes + 1):
         if k != s:
             model += pl.lpSum(f[e, k] for e in graph.out_edges(s)) \
-                     - pl.lpSum(f[e, k] for e in graph.in_edges(s)) == 1
+                    - pl.lpSum(f[e, k] for e in graph.in_edges(s)) == 1
 
     # Contrainte (21)
     for k in range(1, nb_nodes + 1):
@@ -234,9 +241,8 @@ def pl_martin(graph, time_limit, path_to_cplex):
 
     # Création des variables
     x = {e: pl.LpVariable(cat=pl.LpBinary, name="x_{0}".format(e)) for e in graph.edges}
-    # TODO : Vérifier quantificateur : espace de y ? si (i,j) dans E alors la contrainte (27c) y(i,k) peut ne pas exister
     y = {((e0, e1), k): pl.LpVariable(cat=pl.LpBinary, name="y_{0}_{1}".format((e0, e1), k)) for e0 in range(1, nb_nodes + 1) for e1 in range(1, nb_nodes + 1) for k in range(1, nb_nodes + 1)}
-    z = {v: pl.LpVariable(cat=pl.LpBinary, name="y_{0}".format(v)) for v in range(1, nb_nodes + 1)}
+    z = {v: pl.LpVariable(cat=pl.LpBinary, name="z_{0}".format(v)) for v in range(1, nb_nodes + 1)}
 
     # Création de la fonction objective
     model += pl.lpSum(z[i] for i in range(1, nb_nodes + 1))
@@ -251,12 +257,10 @@ def pl_martin(graph, time_limit, path_to_cplex):
 
     # Contrainte (27c)
     for e in graph.edges:
-        model += pl.lpSum(y[(e[0], k), e[1]] + x[e] for k in range(1, nb_nodes + 1) if k != e[0] and k != e[1]) == 1
+        model += pl.lpSum(y[(e[0], k), e[1]] for k in range(1, nb_nodes + 1) if k != e[0] and k != e[1]) + x[e] == 1
 
-    # Contrainte (27d)
-    # TODO : Vérifier les quantificateur : dans 2 + k quelle est la valeur de k ? Pour (i,j) dans gamma(i) -> gamma voisin ?
     for i in range(1, nb_nodes + 1):
-        model += pl.lpSum(x[e] for e in graph.out_edges(i)) - graph.degree(i)*z[i] <= 3
+        model += pl.lpSum(x[e] for e in edges_containing_node(graph, i)) - graph.degree(i) * z[i] <= 2
 
     model.solve(solver)
     model.writeLP("model.lp")
