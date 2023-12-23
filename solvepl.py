@@ -55,7 +55,7 @@ def pl_expo(graph, time_limit, path_to_cplex):
     @param path_to_cplex: Chemin vers CPLEX.
     @return: Les variables de décision obtenues (x, y).
     """
-    solver = pl.CPLEX_CMD(path=path_to_cplex, timeLimit=time_limit, logPath="info.log")
+    solver = pl.CPLEX_CMD(path=path_to_cplex, timeLimit=time_limit, logPath="info.log", msg=False)
     model = pl.LpProblem("main_problem", pl.LpMinimize)
 
     # Nombre de sommet
@@ -100,7 +100,7 @@ def pl_flot(graph, time_limit, path_to_cplex):
     @param path_to_cplex: Chemin vers CPLEX.
     @return: Les variables de décision obtenues (x, y).
     """
-    solver = pl.CPLEX_CMD(path=path_to_cplex, timeLimit=time_limit, logPath="info.log")
+    solver = pl.CPLEX_CMD(path=path_to_cplex, timeLimit=time_limit, logPath="info.log", msg=False)
     model = pl.LpProblem("main_problem", pl.LpMinimize)
 
     # Sommet source
@@ -151,7 +151,7 @@ def pl_flot(graph, time_limit, path_to_cplex):
     model.solve(solver)
     model.writeLP("model.lp")
 
-    return x, y
+    return x, pl.value(model.objective)
 
 
 def pl_flot_multi(graph, time_limit, path_to_cplex):
@@ -163,7 +163,7 @@ def pl_flot_multi(graph, time_limit, path_to_cplex):
     @param path_to_cplex: Chemin vers CPLEX.
     @return: Les variables de décision obtenues (x, y).
     """
-    solver = pl.CPLEX_CMD(path=path_to_cplex, timeLimit=time_limit, logPath="info.log")
+    solver = pl.CPLEX_CMD(path=path_to_cplex, timeLimit=time_limit, logPath="info.log", msg=False)
     model = pl.LpProblem("main_problem", pl.LpMinimize)
 
     # Sommet source
@@ -227,11 +227,11 @@ def pl_flot_multi(graph, time_limit, path_to_cplex):
     model.solve(solver)
     model.writeLP("model.lp")
 
-    return x, y
+    return x, pl.value(model.objective)
 
 
 def pl_martin(graph, time_limit, path_to_cplex):
-    solver = pl.CPLEX_CMD(path=path_to_cplex, timeLimit=time_limit, logPath="info.log")
+    solver = pl.CPLEX_CMD(path=path_to_cplex, timeLimit=time_limit, logPath="info.log", msg=False)
     model = pl.LpProblem("main_problem", pl.LpMinimize)
 
     # Sommet source
@@ -241,7 +241,8 @@ def pl_martin(graph, time_limit, path_to_cplex):
 
     # Création des variables
     x = {e: pl.LpVariable(cat=pl.LpBinary, name="x_{0}".format(e)) for e in graph.edges}
-    y = {((e0, e1), k): pl.LpVariable(cat=pl.LpBinary, name="y_{0}_{1}".format((e0, e1), k)) for e0 in range(1, nb_nodes + 1) for e1 in range(1, nb_nodes + 1) for k in range(1, nb_nodes + 1)}
+    y = {((e0, e1), k): pl.LpVariable(cat=pl.LpBinary, name="y_{0}_{1}".format((e0, e1), k)) for (e0,e1) in graph.edges for k in range(1, nb_nodes + 1)}
+    y.update({((e1, e0), k): pl.LpVariable(cat=pl.LpBinary, name="y_{0}_{1}".format((e1, e0), k)) for (e0,e1) in graph.edges for k in range(1, nb_nodes + 1)})
     z = {v: pl.LpVariable(cat=pl.LpBinary, name="z_{0}".format(v)) for v in range(1, nb_nodes + 1)}
 
     # Création de la fonction objective
@@ -257,7 +258,11 @@ def pl_martin(graph, time_limit, path_to_cplex):
 
     # Contrainte (27c)
     for e in graph.edges:
-        model += pl.lpSum(y[(e[0], k), e[1]] for k in range(1, nb_nodes + 1) if k != e[0] and k != e[1]) + x[e] == 1
+        model += pl.lpSum(y[(e[0], k), e[1]] for k in graph.neighbors(e[0]) if k != e[1]) + x[e] == 1
+        
+    for e in graph.edges:
+        model += x[e] <= y[(e[0],e[1]),e[1]]
+        model += x[e] <= y[(e[1],e[0]),e[0]]
 
     for i in range(1, nb_nodes + 1):
         model += pl.lpSum(x[e] for e in edges_containing_node(graph, i)) - graph.degree(i) * z[i] <= 2
@@ -265,4 +270,63 @@ def pl_martin(graph, time_limit, path_to_cplex):
     model.solve(solver)
     model.writeLP("model.lp")
 
-    return x, z
+    return x, pl.value(model.objective)
+
+
+def pl_martin2(graph, time_limit, path_to_cplex):
+    """
+        Résout le problème MBVST avec Martin (article) sur un graphe non orienté avec la méthode de PuLP et CPLEX.
+
+        @param graph: Le graphe orienté d'origine.
+        @param time_limit: Limite de temps pour la résolution du problème.
+        @param path_to_cplex: Chemin vers CPLEX.
+        @return: Les variables de décision obtenues (x, y).
+        """
+
+    solver = pl.CPLEX_CMD(path=path_to_cplex, timeLimit=time_limit, logPath="info.log", msg=False)
+    model = pl.LpProblem("main_problem", pl.LpMinimize)
+
+    # Sommet source
+    s = 1
+    # Nombre de sommet
+    nb_nodes = graph.number_of_nodes()
+
+    # Création des variables
+    x = {e: pl.LpVariable(cat=pl.LpBinary, name="x_{0}".format(e)) for e in graph.edges}
+    y = {((e0, e1), k): pl.LpVariable(cat=pl.LpBinary, name="y_{0}_{1}".format((e0, e1), k)) for (e0, e1) in graph.edges
+         for k in range(1, nb_nodes + 1)}
+    y.update(
+        {((e1, e0), k): pl.LpVariable(cat=pl.LpBinary, name="y_{0}_{1}".format((e1, e0), k)) for (e0, e1) in graph.edges
+         for k in range(1, nb_nodes + 1)})
+    z = {v: pl.LpVariable(cat=pl.LpBinary, name="z_{0}".format(v)) for v in range(1, nb_nodes + 1)}
+
+    # Création de la fonction objective
+    model += pl.lpSum(z[i] for i in range(1, nb_nodes + 1))
+
+    # Contrainte (27a)
+    model += pl.lpSum(x[e] for e in graph.edges) == nb_nodes - 1
+
+    # Contrainte (27b)
+    for e in graph.edges:
+        for k in range(1, nb_nodes + 1):
+            model += y[e, k] + y[(e[1], e[0]), k] == x[e]
+
+    # Contrainte (27c)
+    for k in range(1, nb_nodes + 1):
+        model += pl.lpSum(y[(k, s), k] for s in range(1, nb_nodes + 1) if (k,s) in graph.edges) <= 0
+
+
+    for k in range(1, nb_nodes + 1):
+        for u in range(1, nb_nodes + 1):
+            if k != u:
+                model += pl.lpSum(y[(u, v), k] for v in range(1, nb_nodes + 1) if (u,v) in graph.edges) <= 1
+
+    for i in range(1, nb_nodes + 1):
+        model += pl.lpSum(x[e] for e in edges_containing_node(graph, i)) - graph.degree(i) * z[i] <= 2
+
+    model.solve(solver)
+    model.writeLP("model.lp")
+
+    return x, pl.value(model.objective)
+
+
