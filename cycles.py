@@ -107,7 +107,14 @@ def is_tree(graph):
 
 
 def solve_by_cycles(graph, time_limit, path_to_cplex):
+    """
+       Résout le problème MBVST à base de cycles
 
+       @param graph: Le graphe d'origine.
+       @param time_limit: Limite de temps pour la résolution du problème.
+       @param path_to_cplex: Chemin vers CPLEX.
+       @return: La variables de décision (x), l'objectif et le graphe obtenues.
+       """
     while not is_tree(graph):
         x, z, graph = destruct_cycles(graph, time_limit, path_to_cplex)
 
