@@ -3,6 +3,12 @@ import networkx as nx
 import pulp as pl
 
 def cycles_base(graph):
+    """
+       Retourne une base des cycles du graph
+
+       @param graph: le graphe d'origine
+       @return: une liste de listes qui contiennent les cycles
+       """
 
     cycles_nodes= list(nx.simple_cycles(graph))
     cycles_aretes = [list(zip(path, path[1:] + [path[0]])) for path in cycles_nodes]
@@ -13,12 +19,12 @@ def cycles_base(graph):
 
 def destruct_cycles(graph, time_limit, path_to_cplex):
     """
-       Résout le problème d'optimisation MBVST avec un nombre exponentielle de contraintes.
+       Résout le programme linéaire à base de cycles
 
        @param graph: Le graphe d'origine.
        @param time_limit: Limite de temps pour la résolution du problème.
        @param path_to_cplex: Chemin vers CPLEX.
-       @return: Les variables de décision obtenues (x, y).
+       @return: La variables de décision obtenue (x), l'objectif obtenue et le graphe obtenue.
        """
 
     solver = pl.CPLEX_CMD(path=path_to_cplex, timeLimit=time_limit, logPath="info.log", msg=False)
@@ -62,6 +68,12 @@ def destruct_cycles(graph, time_limit, path_to_cplex):
 
 
 def link_components(graph):
+    """
+       Rélie les composantes connexes du graphe
+
+       @param graph: Le graphe d'origine.
+       @return: Le graphe obtenue après ajout des arêtes entre les paires de noeuds qui sont dans des composantes différentes
+    """
     connected_components = list(nx.connected_components(graph))
     components_number = len(connected_components)
 
@@ -75,6 +87,12 @@ def link_components(graph):
 
 
 def is_tree(graph):
+    """
+       Vérifie si le graph est un arbre
+
+       @param graph: Le graphe d'origine.
+       @return: Boolean qui indique si le graphe d'origine est un arbre ou non
+    """
     # Vérifie la connectivité
     is_connexe = nx.is_connected(graph)
 
