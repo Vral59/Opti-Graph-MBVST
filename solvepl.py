@@ -117,7 +117,6 @@ def pl_flot(graph, time_limit, path_to_cplex):
     model += pl.lpSum(y[i] for i in range(1, nb_nodes + 1))
 
     # Contrainte (9)
-    # TODO : Vérifier quantificateurs : v != s ?
     for v in range(1, nb_nodes + 1):
         if v != s:
             model += pl.lpSum(x[e] for e in graph.in_edges(v)) == 1
@@ -180,7 +179,6 @@ def pl_flot_multi(graph, time_limit, path_to_cplex):
     model += pl.lpSum(y[i] for i in range(1, nb_nodes + 1))
 
     # Contrainte (18)
-    # TODO : vérifier les quantificateurs : v != s ?
     for v in range(1, nb_nodes+1):
         if v != s:
             model += pl.lpSum(x[e] for e in graph.in_edges(v)) == 1
@@ -189,7 +187,6 @@ def pl_flot_multi(graph, time_limit, path_to_cplex):
     model += pl.lpSum(x[e] for e in graph.edges) == nb_nodes - 1
 
     # Contrainte (19)
-    # TODO : vérifier les quantificateurs : ensemble de k et de v ?
     for v in range(1, nb_nodes+1):
         for k in range(1, nb_nodes+1):
             if v != s and k != v:
@@ -197,7 +194,6 @@ def pl_flot_multi(graph, time_limit, path_to_cplex):
                          - pl.lpSum(f[e, k] for e in graph.in_edges(v)) == 0
 
     # Contrainte (20)
-    # TODO : vérifier les quantificateurs : espace de k ?
     for k in range(1, nb_nodes + 1):
         if k != s:
             model += pl.lpSum(f[e, k] for e in graph.out_edges(s)) \
@@ -234,8 +230,6 @@ def pl_martin(graph, time_limit, path_to_cplex):
     solver = pl.CPLEX_CMD(path=path_to_cplex, timeLimit=time_limit, logPath="info.log", msg=False)
     model = pl.LpProblem("main_problem", pl.LpMinimize)
 
-    # Sommet source
-    s = 1
     # Nombre de sommet
     nb_nodes = graph.number_of_nodes()
 
