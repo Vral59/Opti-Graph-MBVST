@@ -280,8 +280,6 @@ def pl_martin2(graph, time_limit, path_to_cplex):
     solver = pl.CPLEX_CMD(path=path_to_cplex, timeLimit=time_limit, logPath="info.log", msg=False)
     model = pl.LpProblem("main_problem", pl.LpMinimize)
 
-    # Sommet source
-    s = 1
     # Nombre de sommet
     nb_nodes = graph.number_of_nodes()
 
@@ -307,7 +305,7 @@ def pl_martin2(graph, time_limit, path_to_cplex):
 
     # Contrainte (27c)
     for k in range(1, nb_nodes + 1):
-        model += pl.lpSum(y[(k, s), k] for s in range(1, nb_nodes + 1) if (k,s) in graph.edges) <= 0
+        model += pl.lpSum(y[(k, u), k] for u in range(1, nb_nodes + 1) if (k,u) in graph.edges) <= 0
 
 
     for k in range(1, nb_nodes + 1):
