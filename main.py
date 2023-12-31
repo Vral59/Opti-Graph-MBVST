@@ -122,7 +122,7 @@ def main():
     nx.draw(martin_graph, with_labels=True, font_weight='bold')
     plt.show()
 
-    x, z, graph = cycles.solve_by_cycles(graph, time_limit, PATH_TO_CPLEX)
+    x, z, graph_res = cycles.solve_by_cycles(graph, time_limit, PATH_TO_CPLEX)
     print('Score Cycles: ', z)
     cycle_graph = draw_tree(graph.number_of_nodes(), x)
     plt.title("Arbre résolu par base de cycle")
