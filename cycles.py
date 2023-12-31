@@ -94,7 +94,7 @@ def solve_by_cycles(graph, time_limit, path_to_cplex):
     x, z, graph = destruct_cycles(graph, time_limit, path_to_cplex)
     connected = nx.is_connected(graph)
     
-    while not connected or (time.time()-start_time < time_limit):
+    while not connected and (time.time()-start_time < time_limit):
         x, z, graph = destruct_cycles(graph, time_limit, path_to_cplex)
         connected = nx.is_connected(graph)
         if not connected:
