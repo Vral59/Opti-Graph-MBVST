@@ -2,6 +2,8 @@ from solvepl import edges_containing_node
 import networkx as nx
 import pulp as pl
 import time
+import copy
+
 
 
 def destruct_cycles(graph, time_limit, path_to_cplex):
@@ -14,12 +16,13 @@ def destruct_cycles(graph, time_limit, path_to_cplex):
        @return: La variables de décision obtenue (x), l'objectif obtenue et le graphe obtenue.
        """
 
+    
     solver = pl.CPLEX_CMD(path=path_to_cplex, timeLimit=time_limit, logPath="info.log", msg=False)
     model = pl.LpProblem("main_problem", pl.LpMinimize)
 
     # Nombre de sommet
     nb_nodes = graph.number_of_nodes()
-    cycles = nx.simple_cycles(graph)
+    cycles = nx.cycle_basis(graph)
     edges = graph.edges
 
     # Création des variables
@@ -40,7 +43,7 @@ def destruct_cycles(graph, time_limit, path_to_cplex):
     # Contrainte (4)
     for cycle in cycles:
         long_cycle = len(cycle)
-        model += pl.lpSum(x[(cycle[k],cycle[(k+1)%long_cycle])] for k in range(long_cycle)) <= long_cycle - 1
+        model += pl.lpSum(x[(cycle[k],cycle[(k+1)%long_cycle])] for k in range(long_cycle)) == long_cycle - 1
 
     # Contrainte (5)
     for v in range(1, nb_nodes + 1):
@@ -60,14 +63,14 @@ def destruct_cycles(graph, time_limit, path_to_cplex):
 
 
 
-
-def link_components(graph):
+def link_components(original_graph, graph):
     """
        Rélie les composantes connexes du graphe
 
        @param graph: Le graphe d'origine.
        @return: Le graphe obtenue après ajout des arêtes entre les paires de noeuds qui sont dans des composantes différentes
     """
+    original_edges = original_graph.edges
     connected_components = list(nx.connected_components(graph))
     components_number = len(connected_components)
 
@@ -75,9 +78,11 @@ def link_components(graph):
         comp1 = connected_components[n1]
         for n2 in range(n1 + 1, components_number):
             comp2 = connected_components[n2]
-            graph.add_edges_from([(node1, node2) for node1 in comp1 for node2 in comp2])
+            graph.add_edges_from([(node1, node2) for node1 in comp1 for node2 in comp2 
+                        if (node1,node2) in original_edges or (node2,node1) in original_edges])
 
     return graph
+
 
 
 
@@ -90,14 +95,15 @@ def solve_by_cycles(graph, time_limit, path_to_cplex):
        @param path_to_cplex: Chemin vers CPLEX.
        @return: La variables de décision (x), l'objectif et le graphe obtenues.
        """
+    graph_copy = copy.deepcopy(graph)
     start_time = time.time()
-    x, z, graph = destruct_cycles(graph, time_limit, path_to_cplex)
-    connected = nx.is_connected(graph)
+    x, z, graph_copy = destruct_cycles(graph_copy, time_limit, path_to_cplex)
+    connected = nx.is_connected(graph_copy)
     
     while not connected and (time.time()-start_time < time_limit):
-        x, z, graph = destruct_cycles(graph, time_limit, path_to_cplex)
-        connected = nx.is_connected(graph)
+        x, z, graph_copy = destruct_cycles(graph_copy, time_limit, path_to_cplex)
+        connected = nx.is_connected(graph_copy)
         if not connected:
-            graph = link_components(graph)
+            graph_copy = link_components(graph, graph_copy)
 
-    return x, z, graph
+    return x, z, graph_copy
