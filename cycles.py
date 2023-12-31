@@ -1,20 +1,7 @@
 from solvepl import edges_containing_node
 import networkx as nx
 import pulp as pl
-
-def cycles_base(graph):
-    """
-       Retourne une base des cycles du graph
-
-       @param graph: le graphe d'origine
-       @return: une liste de listes qui contiennent les cycles
-       """
-
-    cycles_nodes= list(nx.simple_cycles(graph))
-    cycles_aretes = [list(zip(path, path[1:] + [path[0]])) for path in cycles_nodes]
-    # Liste de sous-liste de couples (i,j): arête
-
-    return cycles_aretes
+import time
 
 
 def destruct_cycles(graph, time_limit, path_to_cplex):
@@ -32,11 +19,12 @@ def destruct_cycles(graph, time_limit, path_to_cplex):
 
     # Nombre de sommet
     nb_nodes = graph.number_of_nodes()
-    cycles = cycles_base(graph)
+    cycles = nx.simple_cycles(graph)
     edges = graph.edges
 
     # Création des variables
-    x = {e: pl.LpVariable(cat=pl.LpBinary, name="x_{0}".format(e)) for e in graph.edges}
+    x = {e: pl.LpVariable(cat=pl.LpBinary, name="x_{0}".format(e)) for e in edges}
+    x.update({(j,i): pl.LpVariable(cat=pl.LpBinary, name="x_{0}".format((j,i))) for (i,j) in edges})
     y = {v: pl.LpVariable(cat=pl.LpBinary, name="y_{0}".format(v)) for v in range(1, nb_nodes + 1)}
 
     # Création de la fonction objective
@@ -44,11 +32,15 @@ def destruct_cycles(graph, time_limit, path_to_cplex):
 
     # Création des contraintes
     # Contrainte (3)
-    model += pl.lpSum(x[e] for e in graph.edges) == nb_nodes - 1
+    model += pl.lpSum(x[e] for e in edges) == nb_nodes - 1
 
+    for (i,j) in edges:
+        model += x[(i,j)] == x[(j,i)]
+        
     # Contrainte (4)
     for cycle in cycles:
-        model += pl.lpSum(x[(i,j)] for (i,j) in edges if (i,j) in cycle or (j,i) in cycle) <= len(cycle) - 1
+        long_cycle = len(cycle)
+        model += pl.lpSum(x[(cycle[k],cycle[(k+1)%long_cycle])] for k in range(long_cycle)) <= long_cycle - 1
 
     # Contrainte (5)
     for v in range(1, nb_nodes + 1):
@@ -59,12 +51,14 @@ def destruct_cycles(graph, time_limit, path_to_cplex):
 
     model.writeLP("model.lp")
 
-    for edge in graph.edges:
+    for edge in edges:
         if not x[edge].value():
             graph.remove_edge(edge[0], edge[1])
 
 
     return x, pl.value(model.objective), graph
+
+
 
 
 def link_components(graph):
@@ -86,25 +80,6 @@ def link_components(graph):
     return graph
 
 
-def is_tree(graph):
-    """
-       Vérifie si le graph est un arbre
-
-       @param graph: Le graphe d'origine.
-       @return: Boolean qui indique si le graphe d'origine est un arbre ou non
-    """
-    # Vérifie la connectivité
-    is_connexe = nx.is_connected(graph)
-
-    # Vérifie l'acyclicité
-    is_acyclic = nx.is_forest(graph)  # Un graphe forestier est un graphe acyclique
-
-    # Vérifie le nombre d'arêtes
-    is_tree = is_connexe and is_acyclic and (graph.number_of_edges() == graph.number_of_nodes() - 1)
-
-    return is_tree
-
-
 
 def solve_by_cycles(graph, time_limit, path_to_cplex):
     """
@@ -115,10 +90,14 @@ def solve_by_cycles(graph, time_limit, path_to_cplex):
        @param path_to_cplex: Chemin vers CPLEX.
        @return: La variables de décision (x), l'objectif et le graphe obtenues.
        """
-    while not is_tree(graph):
+    start_time = time.time()
+    x, z, graph = destruct_cycles(graph, time_limit, path_to_cplex)
+    connected = nx.is_connected(graph)
+    
+    while not connected and (time.time()-start_time < time_limit):
         x, z, graph = destruct_cycles(graph, time_limit, path_to_cplex)
-
-        if not is_tree(graph):
+        connected = nx.is_connected(graph)
+        if not connected:
             graph = link_components(graph)
 
     return x, z, graph
