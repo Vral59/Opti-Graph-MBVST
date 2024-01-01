@@ -95,15 +95,17 @@ def solve_by_cycles(graph, time_limit, path_to_cplex):
        @param path_to_cplex: Chemin vers CPLEX.
        @return: La variables de décision (x), l'objectif et le graphe obtenues.
        """
-    graph_copy = copy.deepcopy(graph)
+    graph_res = copy.deepcopy(graph)
+    original_graph = copy.deepcopy(graph_res)
     start_time = time.time()
-    x, z, graph_copy = destruct_cycles(graph_copy, time_limit, path_to_cplex)
-    connected = nx.is_connected(graph_copy)
+    x, z, graph_res = destruct_cycles(graph_res, time_limit, path_to_cplex)
+    connected = nx.is_connected(graph_res)
     
     while not connected and (time.time()-start_time < time_limit):
-        x, z, graph_copy = destruct_cycles(graph_copy, time_limit, path_to_cplex)
-        connected = nx.is_connected(graph_copy)
+        x, z, graph_res = destruct_cycles(graph_res, time_limit, path_to_cplex)
+        connected = nx.is_connected(graph_res)
         if not connected:
-            graph_copy = link_components(graph, graph_copy)
+            graph_res = link_components(original_graph, graph_res)
+            original_graph = copy.deepcopy(graph_res)
 
-    return x, z, graph_copy
+    return x, z, graph_res
