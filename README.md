@@ -20,24 +20,29 @@ Le projet est composé des fichiers suivants :
 
 - **list_train_graph.txt** : Fichier contenant la liste des graphes utilisés pour l'entraînement des modèles. Les graphes résolus correspondants peuvent être trouvés dans le dossier **instances/Low_graph_solved**.
 
+- **bench_low_pl.csv**, **bench_low.csv**, **bench_big_flot.csv** et **bench_big_ML.csv** : 4 fichiers regroupants toutes les données des différents bechmark.
 ## Utilisation
 
-1. **Préparation des Données d'Entraînement (optionnel) ** :
+1. **Préparation des Données d'Entraînement (optionnel)** :
    - Utilisez la fonction `create_list_graph(graph_dic)` dans le fichier **main.py** pour générer une liste de graphes à partir d'un dossier spécifié.
-   - Exécutez le script principal pour résoudre le Problème d'Arbres Optimaux sur ces graphes et enregistrer les résultats.
+   - Utilisez ensuite la fonction `train_and_save_edge_models(path_to_list_graph):` dans le fichier **main.py** afin d'entrainer un modèle et l'enregistrer.
 
 2. **Exécution du Projet** :
-   - Modifiez le chemin du fichier à résoudre dans la fonction `main()` du fichier **main.py**.
-   - Exécutez **main.py** pour résoudre le Problème d'Arbres Optimaux en utilisant différentes méthodes.
-
+   - Pour exécuter le programme, utilisez la commande suivante :
+   ```bash
+   python main.py [chemin_vers_graph]
+   ```
+   - Exemple :
+   ```bash
+   python main.py instances/Spd_Inst_Rid_Final2/Spd_RF2_40_81_731.txt
+   ```
+   Le programme résoudra ce graphe avec 3 programmes linéaire différents, une heuristique sur la base de cycle et utilisera un modèle d'apprentissage.
 3. **Changement du Modèle de Résolution** :
    - Sélectionnez le modèle de Machine Learning à utiliser en modifiant le modèle dans `joblib.load()` dans la fonction `main()`.
 
 ## Résultats
 
 - Les résultats de chaque méthode de résolution sont affichés, y compris les arbres optimaux générés.
-
-- Les modèles de Machine Learning peuvent être entraînés en activant la variable `bool_train_model` et enregistrés pour une utilisation ultérieure.
 
 - L'efficacité des modèles est évaluée en créant un arbre optimal basé sur les prédictions de probabilités.
 
