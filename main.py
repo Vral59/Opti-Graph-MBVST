@@ -6,7 +6,7 @@ import random
 import cycles
 import ml
 import joblib
-import time
+import sys
 
 PATH_TO_CPLEX = r'C:\Program Files\IBM\ILOG\CPLEX_Studio2211\cplex\bin\x64_win64\cplex.exe'
 
@@ -85,28 +85,74 @@ def draw_tree(nb_node, x):
 
     return G
 
+def train_and_save_edge_models(path_to_list_graph):
+    """
+    Entraîne des modèles à partir des graphes spécifiés dans le fichier path_to_list_graph
+    et sauvegarde les modèles entraînés.
+
+    :param path_to_list_graph: Le chemin vers le fichier list_train_graph.txt contenant la liste des graphes à utiliser.
+    :return: Le modèle entraîné.
+    """
+    # Initialiser les listes X_graph et Y_tree
+    X_graph = []
+    Y_tree = []
+
+    # Lire le fichier list_train_graph.txt
+    with open(path_to_list_graph, 'r') as file:
+        # Lire chaque ligne du fichier
+        for line in file:
+            # Nettoyer la ligne en enlevant les espaces blancs au début et à la fin
+            filename = line.strip()
+            treePath = "instances/Low_graph_solved/" + filename
+            graphPath = "instances/Spd_Inst_Rid_Final2/" + filename
+
+            # Lire les graphes depuis les fichiers et les ajouter aux listes
+            xgraph = read_graph_from_file(graphPath)
+            X_graph.append(xgraph)
+            ytree = read_graph_from_file(treePath)
+            Y_tree.append(ytree)
+
+    # Entraîner les modèles de bordure avec les données recueillies
+    edge_models = ml.train_edge_models(X_graph, Y_tree)
+
+    # Sauvegarder les modèles entraînés
+    joblib.dump(edge_models, 'edge_models.joblib')
+    return edge_models
+
 
 def main():
     """
     Fonction principale exécutant les étapes du script.
     """
+    # Vérifier si le chemin du fichier est fourni en argument
+    if len(sys.argv) != 2:
+        print("Veuillez fournir le chemin du fichier en argument d'exécution.")
+        return 1  # Code d'erreur
+
+    file_path = sys.argv[1]
+
+    # Vérifier si le fichier existe
+    if not os.path.isfile(file_path):
+        print(f"Le fichier spécifié n'existe pas : {file_path}")
+        return 2  # Code d'erreur
+
     # Graph à résoudre
-    file_path = 'instances/Spd_Inst_Rid_Final2/Spd_RF2_40_81_731.txt'  # Remplacez par le chemin de votre fichier
+    # file_path = 'instances/Spd_Inst_Rid_Final2/Spd_RF2_40_81_731.txt'  # Remplacez par le chemin de votre fichier
     graph = read_graph_from_file(file_path)
     directed_g = graph.to_directed()
 
-    plt.title("Graphe de base")
+    plt.title("Graphe")
     nx.draw(graph, with_labels=True, font_weight='bold')
     plt.show()
 
     time_limit = 120
 
-    temps_debut = time.time()
     x, z = solvepl.pl_flot(directed_g, time_limit, PATH_TO_CPLEX)
-    temps_fin = time.time()
     print('Score Flot: ', z)
-    duree_execution = temps_fin - temps_debut
-    print(f"La résolution avec flot a pris {duree_execution} secondes pour s'exécuter.")
+    solved_graph = draw_tree(graph.number_of_nodes(), x)
+    plt.title("Arbre résolu par flot")
+    nx.draw(solved_graph, with_labels=True, font_weight='bold')
+    plt.show()
 
     x, z = solvepl.pl_flot_multi(directed_g, time_limit, PATH_TO_CPLEX)
     print('Score Multi-flot: ', z)
@@ -129,45 +175,11 @@ def main():
     nx.draw(cycle_graph, with_labels=True, font_weight='bold')
     plt.show()
 
-    X_graph = []
-    Y_tree = []
+    # Utilisation d'un modèle particulier
+    edge_models = joblib.load('edge_models_xgboost.joblib')
 
-    with open('list_train_graph.txt', 'r') as file:
-        # Lire chaque ligne du fichier
-        for line in file:
-            # Nettoyer la ligne en enlevant les espaces blancs au début et à la fin
-            filename = line.strip()
-            treePath = "instances/Low_graph_solved/" + filename
-            graphPath = "instances/Spd_Inst_Rid_Final2/" + filename
-            xgraph = read_graph_from_file(graphPath)
-            X_graph.append(xgraph)
-            ytree = read_graph_from_file(treePath)
-            Y_tree.append(ytree)
-
-    bool_train_model = False
-    if bool_train_model:
-        # Entrainement du modèle
-        edge_models = ml.train_edge_models(X_graph, Y_tree)
-        joblib.dump(edge_models, 'edge_models_xgboost.joblib')
-    else:
-        # Utilisation d'un modèle déjà sauvegarder
-        edge_models = joblib.load('edge_models_xgboost.joblib')
-
-    print("Prédiction des proba")
-
-    temps_debut = time.time()
     predictions = ml.predict_proba_for_new_graph(graph, edge_models)
-    temps_fin = time.time()
-    duree_execution = temps_fin - temps_debut
-    print(f"La prédiction a pris {duree_execution} secondes pour s'exécuter.")
-
-    # Creation de l'arbre
-    print("Création du de l'arbre")
-    temps_debut = time.time()
     min_degree_tree = ml.build_minimum_degree_spanning_tree(predictions)
-    temps_fin = time.time()
-    duree_execution = temps_fin - temps_debut
-    print(f"La creation de l'arbre a pris {duree_execution} secondes pour s'exécuter.")
 
     plt.title("Arbre résolu avec ML")
     nx.draw(min_degree_tree, with_labels=True, font_weight='bold')
@@ -182,4 +194,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    exit_code = main()
+    sys.exit(exit_code)

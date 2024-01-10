@@ -86,7 +86,7 @@ def pl_expo(graph, time_limit, path_to_cplex):
 
     model.solve(solver)
 
-    model.writeLP("model.lp")
+    #model.writeLP("model.lp")
 
     return x, y
 
@@ -148,7 +148,7 @@ def pl_flot(graph, time_limit, path_to_cplex):
         model += f[e] >= 0
 
     model.solve(solver)
-    model.writeLP("model.lp")
+    #model.writeLP("model.lp")
 
     return x, pl.value(model.objective)
 
@@ -221,7 +221,7 @@ def pl_flot_multi(graph, time_limit, path_to_cplex):
             model += f[e, k] >= 0
 
     model.solve(solver)
-    model.writeLP("model.lp")
+    #model.writeLP("model.lp")
 
     return x, pl.value(model.objective)
 
@@ -262,7 +262,7 @@ def pl_martin(graph, time_limit, path_to_cplex):
         model += pl.lpSum(x[e] for e in edges_containing_node(graph, i)) - graph.degree(i) * z[i] <= 2
 
     model.solve(solver)
-    model.writeLP("model.lp")
+    #model.writeLP("model.lp")
 
     return x, pl.value(model.objective)
 
@@ -317,7 +317,7 @@ def pl_martin2(graph, time_limit, path_to_cplex):
         model += pl.lpSum(x[e] for e in edges_containing_node(graph, i)) - graph.degree(i) * z[i] <= 2
 
     model.solve(solver)
-    model.writeLP("model.lp")
+    #model.writeLP("model.lp")
 
     return x, pl.value(model.objective)
 
