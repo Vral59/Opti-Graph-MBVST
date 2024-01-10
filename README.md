@@ -20,6 +20,8 @@ Le projet est composé des fichiers suivants :
 
 - **list_train_graph.txt** : Fichier contenant la liste des graphes utilisés pour l'entraînement des modèles. Les graphes résolus correspondants peuvent être trouvés dans le dossier **instances/Low_graph_solved**.
 
+- **list_bench_graph.txt** : Fichier contenant la liste des 50 graphes utilisés pour le benchmark de **bench_low.csv**.
+
 - **bench_low_pl.csv**, **bench_low.csv**, **bench_big_flot.csv** et **bench_big_ML.csv** : 4 fichiers regroupants toutes les données des différents bechmark.
 ## Utilisation
 
