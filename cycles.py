@@ -44,7 +44,7 @@ def destruct_cycles(graph, time_limit, path_to_cplex):
     # Contrainte (4)
     for cycle in cycles:
         long_cycle = len(cycle)
-        model += pl.lpSum(x[(cycle[k],cycle[(k+1)%long_cycle])] for k in range(long_cycle)) == long_cycle - 1
+        model += pl.lpSum(x[(cycle[k],cycle[(k+1)%long_cycle])] for k in range(long_cycle)) <= long_cycle - 1
 
     # Contrainte (5)
     for v in range(1, nb_nodes + 1):
